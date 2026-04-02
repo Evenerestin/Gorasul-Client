@@ -507,7 +507,7 @@ const Canvas = ({
                           width={layer.width}
                           height={layer.height}
                           draggable={editMode}
-                          onClick={(e) => {
+                          onClick={(e: Konva.KonvaEventObject<MouseEvent>) => {
                             if (transformerRef.current && editMode) {
                               transformerRef.current.nodes([e.target]);
                               transformerRef.current.getLayer().batchDraw();

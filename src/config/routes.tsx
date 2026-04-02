@@ -17,14 +17,10 @@ import type { ComponentType } from 'react';
 import ComingSoon from '../components/ComingSoon';
 import Announcement from '../pages/admin/Announcement';
 import EasterEgg from '../pages/EasterEgg';
-import Events from '../pages/Events';
 import Home from '../pages/Home';
 import Ornament from '../pages/Ornament';
 import Recruitment from '../pages/Recruitment';
 import Tree from '../pages/Tree';
-import Wiki from '../pages/wiki/Wiki';
-import WikiCategory from '../pages/wiki/WikiCategory';
-import WikiEntry from '../pages/wiki/WikiEntry';
 
 export interface NavItem {
   icon?: ComponentType<{ size?: number; stroke?: number }>;
@@ -133,4 +129,6 @@ export const navSections: NavSection[] = [
 ];
 
 /** Extra routes not in nav (no icon/label needed) */
-export const extraRoutes = [{ path: '/wiki/:category/:slug', element: WikiEntry, protected: true }];
+export const extraRoutes = [
+  { path: '/wiki/:category/:slug', element: ComingSoon, protected: true }
+];
