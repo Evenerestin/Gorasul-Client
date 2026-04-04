@@ -7,25 +7,26 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const code = searchParams.get('code');
+    const token = searchParams.get('token');
     const error = searchParams.get('error');
 
     if (error) {
-      console.error('Discord OAuth error:', error);
-      navigate('/');
+      navigate('/login?error=' + error);
       return;
     }
 
-    if (code) {
+    if (token) {
+      localStorage.setItem('token', token);
+      window.history.replaceState({}, '', '/');
       api
-        .post('/auth/discord', { code })
+        .get('/auth/me')
         .then((res) => {
           window.dispatchEvent(new CustomEvent('auth-success', { detail: res.data.user }));
           navigate('/');
         })
-        .catch((err) => {
-          console.error('Auth error:', err);
-          navigate('/');
+        .catch(() => {
+          localStorage.removeItem('token');
+          navigate('/login?error=auth_failed');
         });
     }
   }, [searchParams, navigate]);
