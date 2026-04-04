@@ -7,7 +7,7 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const code = searchParams.get('code');
     const error = searchParams.get('error');
 
     if (error) {
@@ -15,17 +15,14 @@ export default function AuthCallback() {
       return;
     }
 
-    if (token) {
-      localStorage.setItem('token', token);
-      window.history.replaceState({}, '', '/');
+    if (code) {
       api
-        .get('/auth/me')
+        .post('/auth/discord', { code })
         .then((res) => {
           window.dispatchEvent(new CustomEvent('auth-success', { detail: res.data.user }));
           navigate('/');
         })
         .catch(() => {
-          localStorage.removeItem('token');
           navigate('/login?error=auth_failed');
         });
     }
