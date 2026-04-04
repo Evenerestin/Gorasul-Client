@@ -52,7 +52,7 @@ function App() {
             })}
             <Route path="/*" element={<NotFound />} />
           </Route>
-          <Route path="/auth/discord/callback" element={<AuthCallback />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
