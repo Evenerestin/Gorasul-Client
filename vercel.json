@@ -1,9 +1,5 @@
 {
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://api.gorasul.pl/api/:path*"
-    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

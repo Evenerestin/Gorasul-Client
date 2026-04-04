@@ -1,11 +1,7 @@
 import { IconLogin, IconLogout } from '@tabler/icons-react';
 import { useAuth } from '../../contexts/useAuth';
+import { useDiscordAuth } from '../../hooks/useDiscordAuth';
 
-function buildDiscordLoginUrl() {
-  const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
-  const redirectUri = `${window.location.origin}/auth/discord/callback`;
-  return `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify`;
-}
 
 export default function SidebarAuthFooter({
   collapsed,
@@ -21,9 +17,7 @@ export default function SidebarAuthFooter({
     onLogout?.();
   };
 
-  const handleLogin = () => {
-    window.location.href = buildDiscordLoginUrl();
-  };
+const { redirect } = useDiscordAuth();
 
   return (
     <div className="border-t border-white/20 px-3 py-4 mt-2">
@@ -54,7 +48,7 @@ export default function SidebarAuthFooter({
       ) : (
         <button
           type="button"
-          onClick={handleLogin}
+          onClick={redirect}
           className={`w-full flex items-center gap-2 rounded-lg bg-red-primary dark:bg-red-primary-light py-2 px-3 text-[13px] font-medium text-white hover:bg-white/10 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
             collapsed ? 'justify-center' : ''
           }`}
