@@ -284,9 +284,9 @@ export default function Register() {
                   onChange={(e) => setField('level', e.target.value)}
                   placeholder="85"
                   min={1}
-                  max={80}
+                  max={260}
                   className={`${inputClass} text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-colors ${
-                    form.level && (Number(form.level) < 1 || Number(form.level) > 80)
+                    form.level && (Number(form.level) < 1 || Number(form.level) > 260)
                       ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400'
                       : ''
                   }`}
