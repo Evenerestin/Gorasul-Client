@@ -65,8 +65,14 @@ export default function Register() {
         aboutYourself: form.about.trim() || undefined
       });
       setStatus('submitted');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Registration failed:', err);
+      if (err && err.response) {
+        console.error('Response data:', err.response.data);
+        console.error('Response status:', err.response.status);
+      } else {
+        console.error('No response from server or not an Axios error.');
+      }
       setStatus('idle');
     } finally {
       recaptchaRef.current?.reset();
