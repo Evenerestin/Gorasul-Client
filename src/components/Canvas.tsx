@@ -5,7 +5,6 @@ import {
   IconChevronRight,
   IconColorPicker,
   IconEraser,
-  IconImageInPicture,
   IconPolaroid,
   IconTrash,
   IconX
@@ -13,17 +12,15 @@ import {
 import Konva from 'konva';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Image as ReactImage, Layer as ReactLayer, Stage, Transformer } from 'react-konva';
+import { SHAPE_CONFIG } from '../constants/canvas';
 import { useTheme } from '../contexts/ThemeContext';
+import { useIsMobile } from '../hooks/useIsMobile';
+
 import BrushOptions from './BrushOptions';
-import { default as ColorPalette } from './ColorPalette';
+import ColorPalette from './ColorPalette';
 
 export type ModalType = 'save-success' | 'save-error' | 'clear-file' | 'clear-canvas' | null;
 export type CanvasShape = 'circle' | 'egg';
-
-const SHAPE_CONFIG = {
-  circle: { width: 400, height: 400, borderRadius: '50%' },
-  egg: { width: 350, height: 450, borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%' }
-};
 
 const Canvas = ({
   savePainting,
@@ -46,6 +43,7 @@ const Canvas = ({
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const [isOverCanvas, setIsOverCanvas] = useState(false);
   const [color, setColor] = useState('#000000');
+  const [colorHistory, setColorHistory] = useState<string[]>([]);
   const [brushSize, setBrushSize] = useState(5);
   const [tool, setTool] = useState('brush');
   const [file, setFile] = useState<File | null>(null);
@@ -59,6 +57,7 @@ const Canvas = ({
       y: number;
       width: number;
       height: number;
+      rotation: number;
     }>
   >([]);
 
@@ -70,12 +69,17 @@ const Canvas = ({
     () => (colorScheme === 'light' ? '#e9ecef' : '#141414'),
     [colorScheme]
   );
-  const { width: canvasWidth, height: canvasHeight, borderRadius } = SHAPE_CONFIG[shape];
+  const isMobile = useIsMobile();
+  const {
+    width: canvasWidth,
+    height: canvasHeight,
+    borderRadius
+  } = SHAPE_CONFIG[shape][isMobile ? 'mobile' : 'native'];
 
   const saveSnapshot = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
     undoStackRef.current = [...undoStackRef.current.slice(-29), snapshot];
@@ -85,7 +89,7 @@ const Canvas = ({
   const undo = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
     const stack = undoStackRef.current;
     if (stack.length === 0) return;
@@ -98,6 +102,9 @@ const Canvas = ({
     setFile(null);
     setImageLayers([]);
     setEditMode(false);
+    setColorHistory([]);
+    undoStackRef.current = [];
+    setCanUndo(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -122,7 +129,7 @@ const Canvas = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
@@ -147,10 +154,9 @@ const Canvas = ({
       return;
     }
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    // Save snapshot before starting this stroke
     saveSnapshot();
 
     const bg = getBackgroundColor();
@@ -162,7 +168,6 @@ const Canvas = ({
     let lastX = e.nativeEvent.offsetX;
     let lastY = e.nativeEvent.offsetY;
 
-    // Draw a dot for single clicks
     ctx.beginPath();
     ctx.arc(lastX, lastY, brushSize / 2, 0, Math.PI * 2);
     ctx.fillStyle = tool === 'eraser' ? bg : color;
@@ -192,16 +197,16 @@ const Canvas = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     const bg = getBackgroundColor();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    setColorHistory([]);
   }, [getBackgroundColor]);
 
-  // Repaint canvas background when theme changes
   useEffect(() => {
     clearCanvas();
   }, [clearCanvas]);
@@ -210,7 +215,7 @@ const Canvas = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     const bg = getBackgroundColor();
@@ -219,7 +224,7 @@ const Canvas = ({
     const blankCanvas = document.createElement('canvas');
     blankCanvas.width = canvas.width;
     blankCanvas.height = canvas.height;
-    const blankCtx = blankCanvas.getContext('2d');
+    const blankCtx = blankCanvas.getContext('2d', { willReadFrequently: true });
     if (!blankCtx) return;
 
     blankCtx.fillStyle = bg;
@@ -235,11 +240,10 @@ const Canvas = ({
     const finalCanvas = document.createElement('canvas');
     finalCanvas.width = canvas.width;
     finalCanvas.height = canvas.height;
-    const finalCtx = finalCanvas.getContext('2d');
+    const finalCtx = finalCanvas.getContext('2d', { willReadFrequently: true });
     if (!finalCtx) return;
 
     if (imageLayers.length > 0 && stageRef.current) {
-      // Clear transformer handles before capture so outlines aren't baked in
       if (transformerRef.current) {
         transformerRef.current.nodes([]);
         transformerRef.current.getLayer()?.batchDraw();
@@ -313,8 +317,8 @@ const Canvas = ({
           }
         }
 
-        const x = (canvasWidth - width) / 2;
-        const y = (canvasHeight - height) / 2;
+        const x = canvasWidth / 2;
+        const y = canvasHeight / 2;
 
         setImageLayers([
           {
@@ -323,9 +327,11 @@ const Canvas = ({
             x,
             y,
             width,
-            height
+            height,
+            rotation: 0
           }
         ]);
+        setEditMode(true);
       };
       img.onerror = () => {
         console.error('Failed to load image');
@@ -345,16 +351,27 @@ const Canvas = ({
     }
   };
 
-  const selectImage = () => {
-    setEditMode(true);
-    if (imageRef.current && transformerRef.current) {
-      transformerRef.current.nodes([imageRef.current]);
-      transformerRef.current.getLayer().batchDraw();
-    }
-  };
-
   const flattenImageToCanvas = () => {
-    // Just exit edit mode — the Konva layer stays and is merged at save time
+    const canvas = canvasRef.current;
+    if (canvas && imageLayers.length > 0) {
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (ctx) {
+        imageLayers.forEach((layer) => {
+          ctx.save();
+          ctx.translate(layer.x, layer.y);
+          ctx.rotate((layer.rotation * Math.PI) / 180);
+          ctx.drawImage(
+            layer.image,
+            -layer.width / 2,
+            -layer.height / 2,
+            layer.width,
+            layer.height
+          );
+          ctx.restore();
+        });
+      }
+      setImageLayers([]);
+    }
     setEditMode(false);
     if (transformerRef.current) {
       transformerRef.current.nodes([]);
@@ -372,7 +389,6 @@ const Canvas = ({
     }
   }, [editMode]);
 
-  // Custom cursor tracking — use fixed positioning with clientX/clientY
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (cursorRef.current) {
@@ -384,7 +400,6 @@ const Canvas = ({
     return () => window.removeEventListener('mousemove', onMove);
   }, []);
 
-  // Track whether cursor is over the canvas area
   useEffect(() => {
     const container = canvasContainerRef.current;
     if (!container) return;
@@ -417,7 +432,6 @@ const Canvas = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {/* Custom cursor — only visible when hovering canvas */}
       <div
         ref={cursorRef}
         className="pointer-events-none z-100"
@@ -445,7 +459,6 @@ const Canvas = ({
       </div>
 
       <div className="flex flex-col gap-6">
-        {/* Canvas area */}
         <div className="flex flex-col items-center gap-4">
           <div
             ref={canvasContainerRef}
@@ -456,7 +469,6 @@ const Canvas = ({
               cursor: isOverCanvas && !editMode ? 'none' : 'default'
             }}
           >
-            {/* Drawing canvas — rendered first (bottom layer) */}
             <canvas
               ref={canvasRef}
               width={canvasWidth}
@@ -475,7 +487,6 @@ const Canvas = ({
               onMouseDown={handleMouseDown}
             />
 
-            {/* Konva layer for uploaded images — rendered on top */}
             {imageLayers.length > 0 && (
               <div
                 style={{
@@ -497,7 +508,7 @@ const Canvas = ({
                   style={{ position: 'absolute', top: 5, left: 5 }}
                 >
                   <ReactLayer>
-                    {imageLayers.map((layer) => (
+                    {imageLayers.map((layer, idx) => (
                       <React.Fragment key={layer.id}>
                         <ReactImage
                           ref={imageRef}
@@ -506,12 +517,39 @@ const Canvas = ({
                           y={layer.y}
                           width={layer.width}
                           height={layer.height}
+                          offsetX={layer.width / 2}
+                          offsetY={layer.height / 2}
+                          rotation={layer.rotation}
                           draggable={editMode}
                           onClick={(e: Konva.KonvaEventObject<MouseEvent>) => {
                             if (transformerRef.current && editMode) {
                               transformerRef.current.nodes([e.target]);
                               transformerRef.current.getLayer().batchDraw();
                             }
+                          }}
+                          onDragEnd={(e) => {
+                            const { x, y } = e.target.position();
+                            setImageLayers((prev) =>
+                              prev.map((img, i) => (i === idx ? { ...img, x, y } : img))
+                            );
+                          }}
+                          onTransformEnd={(e) => {
+                            const node = e.target;
+                            const scaleX = node.scaleX();
+                            const scaleY = node.scaleY();
+                            const width = Math.max(5, node.width() * scaleX);
+                            const height = Math.max(5, node.height() * scaleY);
+                            const rotation = node.rotation();
+                            // Center coordinates after transform
+                            const x = node.x();
+                            const y = node.y();
+                            node.scaleX(1);
+                            node.scaleY(1);
+                            setImageLayers((prev) =>
+                              prev.map((img, i) =>
+                                i === idx ? { ...img, width, height, x, y, rotation } : img
+                              )
+                            );
                           }}
                         />
                       </React.Fragment>
@@ -523,7 +561,6 @@ const Canvas = ({
             )}
           </div>
 
-          {/* Image upload row — below canvas */}
           <div className="flex flex-wrap items-center gap-2">
             <input
               ref={fileInputRef}
@@ -536,28 +573,26 @@ const Canvas = ({
                 if (selectedFile) handleFileInput(selectedFile);
               }}
             />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
-                file
-                  ? 'bg-red-600 text-white border-red-600'
-                  : 'border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700'
-              }`}
-            >
-              <IconPolaroid size={16} />
-              {file ? file.name : 'Wstaw obraz'}
-            </button>
-            {file && (
+            {file ? (
+              <span
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-red-600 text-white border border-red-600 select-none cursor-default"
+                style={{ pointerEvents: 'none' }}
+              >
+                <IconPolaroid size={16} />
+                {file.name}
+              </span>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700"
+              >
+                <IconPolaroid size={16} />
+                Wstaw obraz
+              </button>
+            )}
+            {file && imageLayers.length > 0 && (
               <>
-                {!editMode ? (
-                  <button
-                    onClick={selectImage}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors"
-                  >
-                    <IconImageInPicture size={16} />
-                    Edytuj
-                  </button>
-                ) : (
+                {editMode && (
                   <button
                     onClick={flattenImageToCanvas}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 transition-colors"
@@ -578,9 +613,7 @@ const Canvas = ({
           </div>
         </div>
 
-        {/* Tools, brush, palette */}
         <div className="flex flex-col gap-4 w-full">
-          {/* Toolbar */}
           <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -633,7 +666,6 @@ const Canvas = ({
             </div>
           </div>
 
-          {/* Brush size */}
           <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-5 shadow-sm">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
               Rozmiar pędzla
@@ -641,17 +673,21 @@ const Canvas = ({
             <BrushOptions brushSize={brushSize} setBrushSize={setBrushSize} />
           </div>
 
-          {/* Color palette */}
           <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-5 shadow-sm">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
               Paleta kolorów
             </h3>
-            <ColorPalette color={color} setColor={setColor} swatches={swatches} />
+            <ColorPalette
+              color={color}
+              setColor={setColor}
+              colorHistory={colorHistory}
+              setColorHistory={setColorHistory}
+              swatches={swatches}
+            />
           </div>
         </div>
       </div>
 
-      {/* Clear canvas modal */}
       {activeModal === 'clear-canvas' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"

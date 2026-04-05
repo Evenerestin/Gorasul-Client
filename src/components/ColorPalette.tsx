@@ -1,73 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export const CHRISTMAS_SWATCHES = [
-  'rgb(101,4,12)',
-  'rgb(123,28,14)',
-  'rgb(44,59,52)',
-  'rgb(53,83,68)',
-  'rgb(42,92,48)',
-  'rgb(111,57,30)',
-  'rgb(182,110,48)',
-  'rgb(207,169,98)',
-  'rgb(149,30,38)',
-  'rgb(227, 77, 87)',
-  'rgb(90,158,35)',
-  'rgb(106,128,64)',
-  'rgb(118,155,108)',
-  'rgb(237,191,40)',
-  'rgb(255, 234, 120)',
-  'rgb(255, 248, 207)',
-  'rgb(174,7,11)',
-  'rgb(222,36,28)',
-  'rgb(238,80,56)',
-  'rgb(46,71,113)',
-  'rgb(65,171,206)',
-  'rgb(65,115,196)',
-  'rgb(27,118,160)',
-  'rgb(153,178,224)'
-];
-
-export const EASTER_SWATCHES = [
-  'rgb(255, 182, 193)',
-  'rgb(255, 160, 180)',
-  'rgb(255, 105, 180)',
-  'rgb(219, 112, 147)',
-  'rgb(255, 218, 185)',
-  'rgb(255, 228, 196)',
-  'rgb(244, 164, 96)',
-  'rgb(210, 180, 140)',
-  'rgb(255, 255, 186)',
-  'rgb(255, 234, 120)',
-  'rgb(255, 215, 0)',
-  'rgb(237, 191, 40)',
-  'rgb(186, 255, 201)',
-  'rgb(144, 238, 144)',
-  'rgb(50, 205, 50)',
-  'rgb(34, 139, 34)',
-  'rgb(186, 225, 255)',
-  'rgb(135, 206, 250)',
-  'rgb(0, 191, 255)',
-  'rgb(70, 130, 180)',
-  'rgb(218, 186, 255)',
-  'rgb(186, 148, 255)',
-  'rgb(138, 43, 226)',
-  'rgb(148, 103, 189)'
-];
-
 interface ColorPaletteProps {
   color: string;
   setColor: (color: string) => void;
+  colorHistory: string[];
+  setColorHistory: React.Dispatch<React.SetStateAction<string[]>>;
   swatches?: string[];
 }
 
 export default function ColorPalette({
   color,
   setColor,
-  swatches = CHRISTMAS_SWATCHES
+  colorHistory,
+  setColorHistory,
+  swatches
 }: ColorPaletteProps) {
   const [textValue, setTextValue] = useState('');
   const [isInvalid, setIsInvalid] = useState(false);
-  const [colorHistory, setColorHistory] = useState<string[]>([]);
   const colorPickerRef = useRef<HTMLInputElement>(null);
 
   const colorToHex = useCallback((cssColor: string): string => {
@@ -105,9 +54,9 @@ export default function ColorPalette({
     setIsInvalid(false);
     setColorHistory((prev) => {
       if (prev[0] === hex) return prev;
-      return [hex, ...prev.filter((c) => c !== hex)].slice(0, 5);
+      return [hex, ...prev.filter((c) => c !== hex)].slice(0, 7);
     });
-  }, [color, colorToHex]);
+  }, [color, colorToHex, setColorHistory]);
 
   const parseColor = (input: string): string | null => {
     const trimmed = input.trim();
@@ -137,7 +86,7 @@ export default function ColorPalette({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-6 sm:grid-cols-8 gap-1.5">
-        {swatches.map((swatch) => (
+        {swatches?.map((swatch) => (
           <button
             key={swatch}
             onClick={() => {
@@ -154,51 +103,58 @@ export default function ColorPalette({
           />
         ))}
       </div>
-      <div className="flex items-center rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 overflow-hidden">
-        <button
-          onClick={() => colorPickerRef.current?.click()}
-          className="w-11 h-11 shrink-0 cursor-pointer hover:brightness-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset border-r border-gray-200 dark:border-neutral-700"
-          style={{ backgroundColor: color }}
-          title="Otwórz próbnik kolorów"
-        />
-        <input
-          ref={colorPickerRef}
-          type="color"
-          value={color.startsWith('#') ? color : '#000000'}
-          onChange={(e) => {
-            setColor(e.target.value);
-          }}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-        />
-        <input
-          type="text"
-          placeholder="#hex, rgb(), hsl()..."
-          value={textValue}
-          onChange={(e) => {
-            setTextValue(e.target.value);
-            setIsInvalid(false);
-          }}
-          onBlur={() => applyTextColor(textValue)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') applyTextColor(textValue);
-          }}
-          onPaste={(e) => {
-            const pasted = e.clipboardData.getData('text');
-            setTimeout(() => applyTextColor(pasted), 0);
-          }}
-          className={`flex-1 h-11 px-3 text-sm font-mono bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none ${
-            isInvalid ? 'text-red-500 dark:text-red-400' : ''
-          }`}
-        />
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
+        <div className="flex items-center w-full gap-2">
+          <div className="rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 flex items-center overflow-hidden">
+            <div className="rounded-lg border m-1 border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 flex items-center justify-center overflow-hidden">
+              <button
+                onClick={() => colorPickerRef.current?.click()}
+                className="w-10 h-10 shrink-0 cursor-pointer hover:brightness-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset"
+                style={{ backgroundColor: color }}
+                title="Otwórz próbnik kolorów"
+              />
+              <input
+                ref={colorPickerRef}
+                type="color"
+                value={color.startsWith('#') ? color : '#000000'}
+                onChange={(e) => {
+                  setColor(e.target.value);
+                }}
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="#hex, rgb(), hsl()..."
+              value={textValue}
+              onChange={(e) => {
+                setTextValue(e.target.value);
+                setIsInvalid(false);
+              }}
+              onBlur={() => applyTextColor(textValue)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applyTextColor(textValue);
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData('text');
+                setTimeout(() => applyTextColor(pasted), 0);
+              }}
+              className={`h-6 px-3 m-1 me-2 text-sm rounded-md font-mono bg-transparent text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none ${
+                isInvalid ? 'text-red-500 dark:text-red-400' : ''
+              }`}
+              style={{ minWidth: 120 }}
+            />
+          </div>
+        </div>
         {colorHistory.length > 1 && (
-          <div className="flex items-center gap-0.5 pr-2 border-l border-gray-200 dark:border-neutral-700 pl-2">
+          <div className="flex items-center gap-0.5 pl-2 pr-2">
             {colorHistory.slice(1).map((c) => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className="w-6 h-6 rounded-md border border-gray-200 dark:border-neutral-600 hover:scale-110 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className="w-10 h-10 rounded-md border border-gray-200 dark:border-neutral-600 hover:scale-110 transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 style={{ backgroundColor: c }}
                 title={c}
               />

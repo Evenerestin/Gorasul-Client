@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import type { ModalType } from '../components/Canvas';
 import Canvas from '../components/Canvas';
-import { EASTER_SWATCHES } from '../components/ColorPalette';
+import { EASTER_SWATCHES } from '../constants/canvas';
 import { useAuth } from '../contexts/useAuth';
 import api from '../lib/api';
 

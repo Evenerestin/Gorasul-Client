@@ -1,26 +1,9 @@
 import { IconChevronDown, IconHash, IconSend } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { CHARACTER_CLASSES } from '../constants/classes';
 import { useTheme } from '../contexts/ThemeContext';
 import api from '../lib/api';
-
-const CHARACTER_CLASSES = [
-  { id: 'oracle', race: 'Deva', class: { eng: 'Oracle', pl: 'Wyrocznia' } },
-  { id: 'cardinal', race: 'Deva', class: { eng: 'Cardinal', pl: 'Egzorcysta' } },
-  { id: 'mercenary', race: 'Deva', class: { eng: 'Mercenary', pl: 'Gwardzistwa' } },
-  { id: 'templar', race: 'Deva', class: { eng: 'Templar', pl: 'Templariusz' } },
-  { id: 'masterbreeder', race: 'Deva', class: { eng: 'Master Breeder', pl: 'Pasterz światła' } },
-  { id: 'warkahuna', race: 'Gaia', class: { eng: 'War Kahuna', pl: 'Elementalista' } },
-  { id: 'magus', race: 'Gaia', class: { eng: 'Magus', pl: 'Arcydruid' } },
-  { id: 'berserker', race: 'Gaia', class: { eng: 'Berserker', pl: 'Berserker' } },
-  { id: 'marksman', race: 'Gaia', class: { eng: 'Marksman', pl: 'Myśliwy' } },
-  { id: 'beastmaster', race: 'Gaia', class: { eng: 'Beast Master', pl: 'Władca bestii' } },
-  { id: 'corruptor', race: 'Asura', class: { eng: 'Corruptor', pl: 'Iluzjonista' } },
-  { id: 'voidmage', race: 'Asura', class: { eng: 'Void Mage', pl: 'Nemezis' } },
-  { id: 'overlord', race: 'Asura', class: { eng: 'Overlord', pl: 'Nekromanta' } },
-  { id: 'slayer', race: 'Asura', class: { eng: 'Slayer', pl: 'Zabójca' } },
-  { id: 'deadeye', race: 'Asura', class: { eng: 'Deadeye', pl: 'Łowca śmierci' } }
-];
 
 const inputClass =
   'w-full h-11 px-3 rounded-xl border border-gray-200 dark:border-neutral-700 bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm transition-shadow focus:outline-none';
@@ -73,13 +56,13 @@ export default function Register() {
     setStatus('submitting');
     try {
       await api.post('/register', {
-        captchaToken,
+        recaptchaToken: captchaToken,
         discordUsername: form.discordNick.trim(),
         characterName: form.characterNick.trim(),
-        characterClass: form.characterClass || null,
-        characterLevel: form.level ? Number(form.level) : null,
+        characterClass: form.characterClass,
+        characterLevel: Number(form.level),
         hasExperience: form.hasExperience,
-        aboutYourself: form.about.trim() || null
+        aboutYourself: form.about.trim() || undefined
       });
       setStatus('submitted');
     } catch (err) {
@@ -123,7 +106,7 @@ export default function Register() {
 
   return (
     <div className="flex items-center justify-center min-h-[80vh] py-8">
-      <div className="max-w-lg w-full mx-4">
+      <div className="max-w-lg w-full">
         <form
           onSubmit={handleSubmit}
           className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 shadow-lg overflow-hidden"
@@ -148,7 +131,6 @@ export default function Register() {
               autoComplete="off"
             />
           </div>
-          {/* Header */}
           <div className="px-6 pt-7 pb-5">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Zgłoszenie do gildii
@@ -214,7 +196,7 @@ export default function Register() {
               className={inputClass}
             />
 
-            <div className="grid grid-cols-[1fr_5.5rem] gap-3 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_5.5rem] gap-3 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Klasa postaci
@@ -302,9 +284,9 @@ export default function Register() {
                   onChange={(e) => setField('level', e.target.value)}
                   placeholder="85"
                   min={1}
-                  max={260}
+                  max={80}
                   className={`${inputClass} text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-colors ${
-                    form.level && (Number(form.level) < 1 || Number(form.level) > 260)
+                    form.level && (Number(form.level) < 1 || Number(form.level) > 80)
                       ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-400'
                       : ''
                   }`}
@@ -369,7 +351,7 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="px-6 pb-4 flex justify-center">
+          <div className="px-1 pb-4 flex justify-center">
             <ReCAPTCHA
               ref={recaptchaRef}
               sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
