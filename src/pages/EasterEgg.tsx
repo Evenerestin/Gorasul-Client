@@ -4,10 +4,12 @@ import type { ModalType } from '../components/Canvas';
 import Canvas from '../components/Canvas';
 import { EASTER_SWATCHES } from '../constants/canvas';
 import { useAuth } from '../contexts/useAuth';
+import { useTokenAuth } from '../hooks/useTokenAuth';
 import api from '../lib/api';
 
 export default function EasterEgg() {
   const { user } = useAuth();
+  useTokenAuth();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const saveEasterEgg = async (data: string | null) => {
