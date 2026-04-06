@@ -1,16 +1,21 @@
-import { Navigate, useSearchParams } from 'react-router';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router';
+import config from '../config/config';
 import { useAuth } from '../contexts/useAuth';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
-  const [searchParams] = useSearchParams();
-  const hasToken = searchParams.has('token');
+  const location = useLocation();
 
-  if (isLoading) return null;
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !import.meta.env.DEV) {
+      const redirectUri = `${config.api}/auth/discord/callback?redirect=${location.pathname}`;
+      const discordUrl = `https://discord.com/api/oauth2/authorize?client_id=${config.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify+guilds`;
+      window.location.href = discordUrl;
+    }
+  }, [isLoading, isAuthenticated, location.pathname]);
 
-  if (!isAuthenticated && !hasToken && !import.meta.env.DEV) {
-    return <Navigate to="/" replace />;
-  }
+  if (isLoading || (!isAuthenticated && !import.meta.env.DEV)) return null;
 
   return <>{children}</>;
 }

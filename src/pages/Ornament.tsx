@@ -3,12 +3,10 @@ import { Link } from 'react-router';
 import type { ModalType } from '../components/Canvas';
 import Canvas from '../components/Canvas';
 import { useAuth } from '../contexts/useAuth';
-import { useTokenAuth } from '../hooks/useTokenAuth';
 import api from '../lib/api';
 
 export default function Ornament() {
   const { user } = useAuth();
-  useTokenAuth();
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const saveOrnament = async (data: string | null) => {
